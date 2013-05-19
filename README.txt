@@ -1,6 +1,6 @@
-  -*- restructuredtext -*-
+Forked from : https://bitbucket.org/khorn/txscheduler
 
-txScheduler readme file
+txScheduler
 =======================
 
 txScheduler is a python package that adds the ability to run 
@@ -16,3 +16,7 @@ in long-running processes like most Twisted daemons.
 txScheduler offers just this functionality, allowing scheduling of Python 
 tasks from within a Twisted app according to arbitrarily complex rules 
 specified by the developer.
+
+Reason of fork :
+I want to add a persistent storage in a mongodb database and the ability
+to manage the taskmanager from django.
