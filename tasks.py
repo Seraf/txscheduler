@@ -23,7 +23,7 @@ class ScheduledTask(object):
         self.next_scheduled_runtime = None
         self.last_runtime = None
         self.running = False
-        
+
         self.args = args
         print 'self.args: ' % self.args
         

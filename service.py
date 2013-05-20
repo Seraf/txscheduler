@@ -10,6 +10,7 @@ class ScheduledTaskService(TimerService):
         '''
         '''
         self.step = interval
+        self.clock = None
         self.call = (task_manager.run, args, kwargs)
 
 
