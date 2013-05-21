@@ -3,7 +3,11 @@ from twisted.python import log
 from pymongo import MongoClient
 from tasks import ScheduledTask
 from datetime import datetime
-from dateutil.rrule import rrule, SECONDLY
+import sys
+from dateutil.rrule import *
+
+def example_callable():
+    log.msg('example_callable called!')
 
 class TraceTask(ScheduledTask):
 
@@ -33,6 +37,8 @@ class ScheduledTaskManager(object):
                 self.tasks.append(ScheduledTask(cron['name'], rule, cron['task']))
 
     def build_default_cron(self):
+        import bbox
+        log.msg(sys.path)
         key_defaultcron =     {   "name": "DefaultCron" }
         data_defaultcron =    {
             "name": "DefaultCron",                  \
@@ -41,7 +47,9 @@ class ScheduledTaskManager(object):
                       "interval": 5,                \
                       "freq": SECONDLY              \
             },
-            "task": Plugins.BBox.lang.fr.modules.bbox.pause_channel("deux"),
+            #"task": example_callable(),
+            "task": bbox.BBox().pause_channel(),
+            #Plugins.BBox.lang.fr.modules.bbox.pause_channel("deux"),
             "enabled": 1,
         }
         self.database.crons.update(key_defaultcron, data_defaultcron, upsert=True)
@@ -64,6 +72,7 @@ class ScheduledTaskManager(object):
         '''Checks for tasks which need to be run and runs them.
         '''
         log.msg('ScheduledTaskManager: checking for tasks to run...')
+        log.msg(sys.path)
         tasks_to_run = [task for task in self.tasks if
                             task.next_scheduled_runtime < datetime.now()]
         log.msg('Scheduledtaskmanager: %d tasks found.' % len(tasks_to_run) )
