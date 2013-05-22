@@ -28,11 +28,18 @@ class ScheduledTaskManager(object):
         self.tasks = []
         for cron in self.database.crons.find( { "enabled": 1 } ):
             rule = rrule(**cron['rule'])
+            object = namedAny(cron['module'] + '.' + cron['class'])()
             func = namedAny(cron['module'] + '.' + cron['class'] + '.' + cron['method'])
-            if cron['debug'] == True:
-                self.tasks.append(TraceTask(cron['name'], rule, func, eval(cron['args'])))
+            if cron['args']:
+                if cron['debug'] == True:
+                    self.tasks.append(TraceTask(cron['name'], rule, func, object, cron['args']))
+                else:
+                    self.tasks.append(ScheduledTask(cron['name'], rule, func, object, cron['args']))
             else:
-                self.tasks.append(ScheduledTask(cron['name'], rule, func, eval(cron['args'])))
+                if cron['debug'] == True:
+                    self.tasks.append(TraceTask(cron['name'], rule, func, object))
+                else:
+                    self.tasks.append(ScheduledTask(cron['name'], rule, func, object))
 
     def build_default_cron(self):
         key_defaultcron =     {   "name": "DefaultCron" }
@@ -43,11 +50,10 @@ class ScheduledTaskManager(object):
                       "interval": 5,                \
                       "freq": SECONDLY              \
             },
-            # a revoir pour faire un truc generique avec Jarvis (genre qu'il parle aux clients)
-            "module": 'sncf',
-            "class": 'SNCF',
-            "method": 'getTrains',
-            "args" : "SNCF()",
+            "module": 'programmetv',
+            "class": 'ProgrammeTV',
+            "method": 'downloadProgrammeTV',
+            "args": '',
             "enabled": 1,
         }
         self.database.crons.update(key_defaultcron, data_defaultcron, upsert=True)
