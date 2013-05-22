@@ -61,12 +61,8 @@ class ScheduledTask(object):
     def _execute(self):
         '''Actually runs the task.
         '''
-        from sncf import SNCF
-        print self.callable
         print 'self.args: '
         print self.args
-        print 'self.kwargs: '
-        print self.kwargs
         self.last_runtime = datetime.now()
         self.running = True
         # run the callable

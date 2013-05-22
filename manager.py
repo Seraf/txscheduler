@@ -2,12 +2,9 @@ from datetime import datetime
 from twisted.python import log
 from pymongo import MongoClient
 from tasks import ScheduledTask
-from datetime import datetime
-import sys
 from dateutil.rrule import *
+from twisted.python.reflect import namedAny
 
-def example_callable():
-    log.msg('example_callable called!')
 
 class TraceTask(ScheduledTask):
 
@@ -25,20 +22,19 @@ class ScheduledTaskManager(object):
     '''Manages a group of tasks.
     '''
     def __init__(self, configuration):
-        from sncf import SNCF
         mongo = MongoClient(configuration['database']['server'], configuration['database']['port'])
         self.database = mongo.jarvis
         self.build_default_cron()
         self.tasks = []
         for cron in self.database.crons.find( { "enabled": 1 } ):
             rule = rrule(**cron['rule'])
+            func = namedAny(cron['module'] + '.' + cron['class'] + '.' + cron['method'])
             if cron['debug'] == True:
-                self.tasks.append(TraceTask(cron['name'], rule, cron['class'].cron['method'](cron['args'])))
+                self.tasks.append(TraceTask(cron['name'], rule, func, eval(cron['args'])))
             else:
-                self.tasks.append(ScheduledTask(cron['name'], rule, cron['class'].cron['method'](cron['args'])))
+                self.tasks.append(ScheduledTask(cron['name'], rule, func, eval(cron['args'])))
 
     def build_default_cron(self):
-        from sncf import SNCF
         key_defaultcron =     {   "name": "DefaultCron" }
         data_defaultcron =    {
             "name": "DefaultCron",                  \
@@ -47,7 +43,7 @@ class ScheduledTaskManager(object):
                       "interval": 5,                \
                       "freq": SECONDLY              \
             },
-            #"task": 'sncf.SNCF().getTrains()',
+            # a revoir pour faire un truc generique avec Jarvis (genre qu'il parle aux clients)
             "module": 'sncf',
             "class": 'SNCF',
             "method": 'getTrains',
