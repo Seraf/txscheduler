@@ -25,10 +25,8 @@ class ScheduledTask(object):
         self.running = False
 
         self.args = args
-        print 'self.args: ' % self.args
-        
         self.kwargs = kwargs
-        
+
         # schedule the task for the first run
         self._reschedule()
         
@@ -63,6 +61,12 @@ class ScheduledTask(object):
     def _execute(self):
         '''Actually runs the task.
         '''
+        from sncf import SNCF
+        print self.callable
+        print 'self.args: '
+        print self.args
+        print 'self.kwargs: '
+        print self.kwargs
         self.last_runtime = datetime.now()
         self.running = True
         # run the callable

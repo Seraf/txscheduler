@@ -25,6 +25,7 @@ class ScheduledTaskManager(object):
     '''Manages a group of tasks.
     '''
     def __init__(self, configuration):
+        from sncf import SNCF
         mongo = MongoClient(configuration['database']['server'], configuration['database']['port'])
         self.database = mongo.jarvis
         self.build_default_cron()
@@ -32,13 +33,12 @@ class ScheduledTaskManager(object):
         for cron in self.database.crons.find( { "enabled": 1 } ):
             rule = rrule(**cron['rule'])
             if cron['debug'] == True:
-                self.tasks.append(TraceTask(cron['name'], rule, cron['task']))
+                self.tasks.append(TraceTask(cron['name'], rule, cron['class'].cron['method'](cron['args'])))
             else:
-                self.tasks.append(ScheduledTask(cron['name'], rule, cron['task']))
+                self.tasks.append(ScheduledTask(cron['name'], rule, cron['class'].cron['method'](cron['args'])))
 
     def build_default_cron(self):
-        import bbox
-        log.msg(sys.path)
+        from sncf import SNCF
         key_defaultcron =     {   "name": "DefaultCron" }
         data_defaultcron =    {
             "name": "DefaultCron",                  \
@@ -47,9 +47,11 @@ class ScheduledTaskManager(object):
                       "interval": 5,                \
                       "freq": SECONDLY              \
             },
-            #"task": example_callable(),
-            "task": bbox.BBox().pause_channel(),
-            #Plugins.BBox.lang.fr.modules.bbox.pause_channel("deux"),
+            #"task": 'sncf.SNCF().getTrains()',
+            "module": 'sncf',
+            "class": 'SNCF',
+            "method": 'getTrains',
+            "args" : "SNCF()",
             "enabled": 1,
         }
         self.database.crons.update(key_defaultcron, data_defaultcron, upsert=True)
@@ -72,7 +74,6 @@ class ScheduledTaskManager(object):
         '''Checks for tasks which need to be run and runs them.
         '''
         log.msg('ScheduledTaskManager: checking for tasks to run...')
-        log.msg(sys.path)
         tasks_to_run = [task for task in self.tasks if
                             task.next_scheduled_runtime < datetime.now()]
         log.msg('Scheduledtaskmanager: %d tasks found.' % len(tasks_to_run) )
