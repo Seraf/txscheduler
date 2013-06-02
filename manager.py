@@ -25,8 +25,11 @@ class ScheduledTaskManager(object):
         self.configuration = configuration
         mongo = MongoClient(configuration['database']['server'], configuration['database']['port'])
         self.database = mongo.jarvis
+        self.build_tasks()
+
+    def build_tasks(self):
         self.tasks = []
-        for cron in self.database.crons.find( { "enabled": 1 } ):
+        for cron in self.database.crons.find( { "enabled": True } ):
             rule = rrulestr(str(cron['rule']))
             object = namedAny(cron['module'] + '.' + cron['class'])()
             func = namedAny(cron['module'] + '.' + cron['class'] + '.' + cron['method'])
@@ -47,7 +50,13 @@ class ScheduledTaskManager(object):
         Expects a :class:`txscheduler.tasks.ScheduledTask` instance.
         '''
         self.tasks.append(task)
-        
+
+    def reload(self):
+        '''Reload the self.tasks
+        '''
+        self.build_tasks()
+        return "OK"
+
     def remove_task(self, task):
         '''Removes a task to be run.
         
@@ -60,9 +69,10 @@ class ScheduledTaskManager(object):
         '''
         if self.configuration['debug'] == True:
             log.msg('ScheduledTaskManager: checking for tasks to run...')
+            log.msg(self.tasks)
         tasks_to_run = [task for task in self.tasks if
                             task.next_scheduled_runtime < datetime.now()]
         if self.configuration['debug'] == True:
-            log.msg('Scheduledtaskmanager: %d tasks found.' % len(tasks_to_run) )
+            log.msg('Scheduledtaskmanager: %d tasks found.' % len(tasks_to_run))
         for task in tasks_to_run:
             task.run()
