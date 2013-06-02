@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from tasks import ScheduledTask
 from dateutil.rrule import *
 from twisted.python.reflect import namedAny
-
+from sys import path
 
 class TraceTask(ScheduledTask):
 
@@ -22,12 +22,12 @@ class ScheduledTaskManager(object):
     '''Manages a group of tasks.
     '''
     def __init__(self, configuration):
+        self.configuration = configuration
         mongo = MongoClient(configuration['database']['server'], configuration['database']['port'])
         self.database = mongo.jarvis
-        self.build_default_cron()
         self.tasks = []
         for cron in self.database.crons.find( { "enabled": 1 } ):
-            rule = rrule(**cron['rule'])
+            rule = rrulestr(str(cron['rule']))
             object = namedAny(cron['module'] + '.' + cron['class'])()
             func = namedAny(cron['module'] + '.' + cron['class'] + '.' + cron['method'])
             if cron['args']:
@@ -40,23 +40,6 @@ class ScheduledTaskManager(object):
                     self.tasks.append(TraceTask(cron['name'], rule, func, object))
                 else:
                     self.tasks.append(ScheduledTask(cron['name'], rule, func, object))
-
-    def build_default_cron(self):
-        key_defaultcron =     {   "name": "DefaultCron" }
-        data_defaultcron =    {
-            "name": "DefaultCron",                  \
-            "debug": 1,                             \
-            "rule": {
-                      "interval": 5,                \
-                      "freq": SECONDLY              \
-            },
-            "module": 'programmetv',
-            "class": 'ProgrammeTV',
-            "method": 'downloadProgrammeTV',
-            "args": '',
-            "enabled": 1,
-        }
-        self.database.crons.update(key_defaultcron, data_defaultcron, upsert=True)
 
     def add_task(self, task):
         '''Adds a task to be run.
@@ -75,9 +58,11 @@ class ScheduledTaskManager(object):
     def run(self):
         '''Checks for tasks which need to be run and runs them.
         '''
-        log.msg('ScheduledTaskManager: checking for tasks to run...')
+        if self.configuration['debug'] == True:
+            log.msg('ScheduledTaskManager: checking for tasks to run...')
         tasks_to_run = [task for task in self.tasks if
                             task.next_scheduled_runtime < datetime.now()]
-        log.msg('Scheduledtaskmanager: %d tasks found.' % len(tasks_to_run) )
+        if self.configuration['debug'] == True:
+            log.msg('Scheduledtaskmanager: %d tasks found.' % len(tasks_to_run) )
         for task in tasks_to_run:
             task.run()
